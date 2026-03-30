@@ -23,7 +23,7 @@ Go to [Cloudflare Registrar](https://www.cloudflare.com/products/registrar/) and
 3. Choose:
    - **Region:** any — pick closest to your users (New York or San Francisco for US)
    - **Image:** Ubuntu 24.04 LTS
-   - **Size:** Basic → Regular SSD → **$6/mo** (1 vCPU, 1 GB RAM — sufficient for a small pool)
+   - **Size:** Basic → Regular SSD → **$6/mo** (1 vCPU, 1 GB RAM minimum — do not use the 512MB plan, the build will OOM-kill)
 4. Under **Authentication**, choose **SSH Key** and paste your public key:
    ```bash
    cat ~/.ssh/id_ed25519.pub   # or id_rsa.pub
@@ -129,16 +129,21 @@ Visit `https://capsworldcup.com` — you should see the site with a valid SSL pa
 
 ## Deploying updates
 
-Whenever you make local changes and want to push them live:
+Build images locally and transfer them to the server — do not build on the server (insufficient RAM).
 
 ```bash
-# On your local machine
-git add . && git commit -m "describe your change" && git push
+# 1. Build images on your local machine
+cd ~/personal_projects/caps_world_cup
+docker compose build
 
-# On the server
-ssh root@<your-server-ip>
-cd /opt/caps-world-cup && git pull && docker compose up -d --build
+# 2. Transfer images to the server (streams over SSH, no temp file needed)
+docker save caps_world_cup-frontend caps_world_cup-api | gzip | ssh root@<your-server-ip> "docker load"
+
+# 3. Pull latest code and restart on the server
+ssh root@<your-server-ip> "cd /opt/caps-world-cup && git pull && docker compose up -d"
 ```
+
+> Building on a 1GB droplet will likely OOM-kill mid-build. Always build locally.
 
 ---
 
@@ -158,7 +163,16 @@ docker compose logs db        # Postgres errors
 
 **Site loads but API calls fail?**
 - Confirm `FRONTEND_URL` and `FRONTEND_WS_URL` in `.env` use `https://` and `wss://` respectively
-- Rebuild after any `.env` change: `docker compose up -d --build`
+- After any `.env` change, rebuild locally and redeploy (see Deploying updates above)
+
+**Server becomes unresponsive / can't SSH in?**
+- The build process likely OOM-killed the machine — always build locally, never on the server
+- Power cycle via DigitalOcean dashboard: Droplet → Power → Power Cycle
+- Once back up, add swap as a safety net:
+  ```bash
+  fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  ```
 
 **Need to reset the database:**
 ```bash

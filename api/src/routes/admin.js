@@ -249,19 +249,17 @@ router.post('/results', async (req, res) => {
     placements: z.array(z.object({
       team_id:     z.string().uuid(),
       placement:   z.number().int().positive(),
-      group_wins:  z.number().int().min(0).max(3),
-      group_draws: z.number().int().min(0).max(3),
     })),
   });
   const parsed = Schema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
-  // Save placements and group results
+  // Save final placements
   await withTransaction(async (client) => {
     for (const p of parsed.data.placements) {
       await client.query(
-        `UPDATE teams SET placement = $1, group_wins = $2, group_draws = $3 WHERE id = $4`,
-        [p.placement, p.group_wins, p.group_draws, p.team_id]
+        `UPDATE teams SET placement = $1 WHERE id = $2`,
+        [p.placement, p.team_id]
       );
     }
   });

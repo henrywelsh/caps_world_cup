@@ -2,18 +2,18 @@ const { withTransaction } = require('../db');
 
 // ── Payout structure constants ─────────────────────────────────────────────────
 //
-// Hybrid structure: 50% placement-based + 50% per-win-based
+// Knockout-only structure: rewards begin at the round of 32. The group stage is
+// not rewarded — teams eliminated in the group stage (placement 33-48) earn nothing,
+// though their bids still feed the pot. Total distributes exactly 100% of the pot.
 //
-// Placement payouts (% of total pot):
-//   Champion (1): 7.10%, Runner-up (2): 4.00%, 3rd (3): 2.50%, 4th (4): 2.00%
-//   QF exits (5-8): 2.50% each, R16 exits (9-16): 1.25% each
-//   R32 exits (17-32): 0.55% each, Group exits (33-48): 0.35% each
+// Placement payouts (% of total pot) — 65% total:
+//   Champion (1): 12.00%, Runner-up (2): 7.00%, 3rd (3): 4.50%, 4th (4): 3.50%
+//   QF exits (5-8): 3.00% each, R16 exits (9-16): 1.75% each
+//   R32 exits (17-32): 0.75% each, Group exits (33-48): 0.00% (no payout)
 //
-// Knockout per-win (% of total pot per win earned):
+// Knockout per-win (% of total pot per win earned) — 35% total:
 //   R32 win: 0.50%, R16 win: 1.00%, QF win: 1.50%, SF win: 2.50%
 //   3rd place match win: 1.50%, Final win: 6.50%
-//
-// Group stage pool: 15% of pot, split by (wins×3 + draws×1) across all teams
 
 const KNOCKOUT_WIN_PCT = {
   R32:   0.50,
@@ -24,17 +24,14 @@ const KNOCKOUT_WIN_PCT = {
   FINAL: 6.50,
 };
 
-const GROUP_WIN_POOL_PCT = 15.0;
-
 function placementPct(placement) {
-  if (placement === 1)                          return 7.10;
-  if (placement === 2)                          return 4.00;
-  if (placement === 3)                          return 2.50;
-  if (placement === 4)                          return 2.00;
-  if (placement >= 5  && placement <= 8)        return 2.50;
-  if (placement >= 9  && placement <= 16)       return 1.25;
-  if (placement >= 17 && placement <= 32)       return 0.55;
-  if (placement >= 33 && placement <= 48)       return 0.35;
+  if (placement === 1)                          return 12.00;
+  if (placement === 2)                          return 7.00;
+  if (placement === 3)                          return 4.50;
+  if (placement === 4)                          return 3.50;
+  if (placement >= 5  && placement <= 8)        return 3.00;
+  if (placement >= 9  && placement <= 16)       return 1.75;
+  if (placement >= 17 && placement <= 32)       return 0.75;
   return 0;
 }
 
@@ -67,30 +64,19 @@ async function computeAndSavePayouts() {
 
     // All teams that have been assigned a placement
     const { rows: teams } = await client.query(`
-      SELECT id AS team_id, placement, group_wins, group_draws
+      SELECT id AS team_id, placement
         FROM teams
        WHERE placement IS NOT NULL
     `);
     if (!teams.length) throw new Error('No placements set');
 
-    // Group stage pool — total shares across all teams
-    const totalGroupShares = teams.reduce(
-      (s, t) => s + parseInt(t.group_wins) * 3 + parseInt(t.group_draws) * 1, 0
-    );
-    const groupPool = pot * (GROUP_WIN_POOL_PCT / 100);
-
-    // Compute dollar allocation for each team
+    // Compute dollar allocation for each team (placement band + knockout-win bonuses)
     const teamAllocation = {};
     for (const team of teams) {
       let allocation = pot * (placementPct(team.placement) / 100);
 
       for (const win of knockoutWinsForPlacement(team.placement)) {
         allocation += pot * (KNOCKOUT_WIN_PCT[win] / 100);
-      }
-
-      if (totalGroupShares > 0) {
-        const teamShares = parseInt(team.group_wins) * 3 + parseInt(team.group_draws) * 1;
-        allocation += groupPool * (teamShares / totalGroupShares);
       }
 
       teamAllocation[team.team_id] = allocation;
@@ -163,4 +149,4 @@ async function computeAndSavePayouts() {
   });
 }
 
-module.exports = { computeAndSavePayouts, placementPct, knockoutWinsForPlacement, KNOCKOUT_WIN_PCT, GROUP_WIN_POOL_PCT };
+module.exports = { computeAndSavePayouts, placementPct, knockoutWinsForPlacement, KNOCKOUT_WIN_PCT };

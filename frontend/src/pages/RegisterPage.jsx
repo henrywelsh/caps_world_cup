@@ -41,8 +41,9 @@ function RulesStep({ onContinue }) {
         <section style={{ marginBottom: 20 }}>
           <h2 style={{ fontSize: 15, marginBottom: 8 }}>Payouts</h2>
           <p style={{ fontSize: 13, lineHeight: 1.6, marginBottom: 10 }}>
-            <strong>100% of the pot is paid out</strong> using a hybrid structure: half based on how far a team finishes,
-            half based on wins along the way. Every win matters — a team that goes deep earns payout from each round it wins.
+            <strong>100% of the pot is paid out on knockout performance</strong> — rewards begin at the round of 32.
+            Each team earns based on how far it finishes <em>plus</em> a bonus for every knockout round it wins.
+            Teams eliminated in the group stage earn nothing, but their bids still feed the pot.
           </p>
           <p style={{ fontSize: 13, lineHeight: 1.6, marginBottom: 10 }}>
             Your payout = <em>(team's total pot share) × (your ownership % of that team)</em>.
@@ -52,14 +53,14 @@ function RulesStep({ onContinue }) {
           <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', marginBottom: 14 }}>
             <tbody>
               {[
-                ['Champion',       '7.10%'],
-                ['Runner-up',      '4.00%'],
-                ['3rd place',      '2.50%'],
-                ['4th place',      '2.00%'],
-                ['Quarterfinalist (×4)', '2.50% each'],
-                ['Round of 16 exit (×8)', '1.25% each'],
-                ['Round of 32 exit (×16)', '0.55% each'],
-                ['Group stage exit (×16)', '0.35% each'],
+                ['Champion',       '12.00%'],
+                ['Runner-up',      '7.00%'],
+                ['3rd place',      '4.50%'],
+                ['4th place',      '3.50%'],
+                ['Quarterfinalist (×4)', '3.00% each'],
+                ['Round of 16 exit (×8)', '1.75% each'],
+                ['Round of 32 exit (×16)', '0.75% each'],
+                ['Group stage exit', 'no payout'],
               ].map(([label, val]) => (
                 <tr key={label} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '4px 0', color: 'var(--text-muted)' }}>{label}</td>
@@ -88,11 +89,6 @@ function RulesStep({ onContinue }) {
             </tbody>
           </table>
 
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 4 }}>GROUP STAGE WINS POOL</p>
-          <p style={{ fontSize: 12, lineHeight: 1.6 }}>
-            15% of the pot is split across all group stage wins and draws (win = 3 shares, draw = 1 share).
-            The more group stage wins your team racks up, the larger their slice of this pool.
-          </p>
         </section>
 
         <section style={{ marginBottom: 24 }}>

@@ -11,17 +11,14 @@ const KNOCKOUT_WIN_PCT = {
   FINAL: 6.50,
 };
 
-const GROUP_WIN_POOL_PCT = 15.0;
-
 function placementPct(placement) {
-  if (placement === 1)                    return 7.10;
-  if (placement === 2)                    return 4.00;
-  if (placement === 3)                    return 2.50;
-  if (placement === 4)                    return 2.00;
-  if (placement >= 5  && placement <= 8)  return 2.50;
-  if (placement >= 9  && placement <= 16) return 1.25;
-  if (placement >= 17 && placement <= 32) return 0.55;
-  if (placement >= 33 && placement <= 48) return 0.35;
+  if (placement === 1)                    return 12.00;
+  if (placement === 2)                    return 7.00;
+  if (placement === 3)                    return 4.50;
+  if (placement === 4)                    return 3.50;
+  if (placement >= 5  && placement <= 8)  return 3.00;
+  if (placement >= 9  && placement <= 16) return 1.75;
+  if (placement >= 17 && placement <= 32) return 0.75;
   return 0;
 }
 
@@ -42,43 +39,33 @@ function knockoutWinTotal(placement) {
   );
 }
 
-// Compute a team's group stage payout given their shares and the total shares
-// across all teams (derived from a baseline assumption).
-function groupStagePayout(pot, teamWins, teamDraws, totalShares) {
-  if (totalShares === 0) return 0;
-  const teamShares = teamWins * 3 + teamDraws * 1;
-  return (teamShares / totalShares) * pot * (GROUP_WIN_POOL_PCT / 100);
-}
-
 // Total pot share for a team (as $ amount)
-function teamTotalPayout(pot, placement, groupWins, groupDraws, totalGroupShares) {
+function teamTotalPayout(pot, placement) {
   const placementDollars    = pot * (placementPct(placement) / 100);
   const knockoutDollars     = pot * (knockoutWinTotal(placement) / 100);
-  const groupDollars        = groupStagePayout(pot, groupWins, groupDraws, totalGroupShares);
-  return { placementDollars, knockoutDollars, groupDollars, total: placementDollars + knockoutDollars + groupDollars };
+  return { placementDollars, knockoutDollars, total: placementDollars + knockoutDollars };
 }
 
 // ── Tier definitions for the reference table ──────────────────────────────────
 
 const TIERS = [
-  { label: 'Champion',          placement: 1,  count: 1,  defaultWins: 3, defaultDraws: 0 },
-  { label: 'Runner-up',         placement: 2,  count: 1,  defaultWins: 2, defaultDraws: 1 },
-  { label: '3rd place',         placement: 3,  count: 1,  defaultWins: 2, defaultDraws: 0 },
-  { label: '4th place',         placement: 4,  count: 1,  defaultWins: 2, defaultDraws: 0 },
-  { label: 'Quarterfinalist',   placement: 5,  count: 4,  defaultWins: 2, defaultDraws: 0 },
-  { label: 'Round of 16 exit',  placement: 9,  count: 8,  defaultWins: 1, defaultDraws: 1 },
-  { label: 'Round of 32 exit',  placement: 17, count: 16, defaultWins: 1, defaultDraws: 1 },
-  { label: 'Group stage exit',  placement: 33, count: 16, defaultWins: 1, defaultDraws: 0 },
+  { label: 'Champion',          placement: 1,  count: 1  },
+  { label: 'Runner-up',         placement: 2,  count: 1  },
+  { label: '3rd place',         placement: 3,  count: 1  },
+  { label: '4th place',         placement: 4,  count: 1  },
+  { label: 'Quarterfinalist',   placement: 5,  count: 4  },
+  { label: 'Round of 16 exit',  placement: 9,  count: 8  },
+  { label: 'Round of 32 exit',  placement: 17, count: 16 },
 ];
 
 // ── Presets ───────────────────────────────────────────────────────────────────
 
 const PRESETS = [
-  { label: 'Champion (3-0 group)',    placement: 1,  groupWins: 3, groupDraws: 0, ownership: 25 },
-  { label: 'Runner-up (2-1 group)',   placement: 2,  groupWins: 2, groupDraws: 1, ownership: 20 },
-  { label: 'Quarterfinalist (2-1)',    placement: 5,  groupWins: 2, groupDraws: 0, ownership: 30 },
-  { label: 'R16 exit (1-1-1 group)',  placement: 9,  groupWins: 1, groupDraws: 1, ownership: 50 },
-  { label: 'Group stage exit (1-0-2)',placement: 33, groupWins: 1, groupDraws: 0, ownership: 100 },
+  { label: 'Champion',        placement: 1,  ownership: 25 },
+  { label: 'Runner-up',       placement: 2,  ownership: 20 },
+  { label: 'Quarterfinalist', placement: 5,  ownership: 30 },
+  { label: 'R16 exit',        placement: 9,  ownership: 50 },
+  { label: 'R32 exit',        placement: 17, ownership: 100 },
 ];
 
 const TIER_OPTIONS = TIERS.map((t) => ({ value: t.placement, label: t.label }));
@@ -88,37 +75,22 @@ const TIER_OPTIONS = TIERS.map((t) => ({ value: t.placement, label: t.label }));
 export default function SimulatorPage() {
   const [pot, setPot] = useState(500);
   const [placement, setPlacement] = useState(1);
-  const [groupWins, setGroupWins]   = useState(3);
-  const [groupDraws, setGroupDraws] = useState(0);
   const [ownership, setOwnership]   = useState(25);
 
-  // Baseline total group shares: all 48 teams averaged at 1W-1D-1L = 4 shares each = 192.
-  // We swap out the selected team's "average" contribution and replace with their actual record.
-  const BASELINE_SHARES_PER_TEAM = 4; // 1W×3 + 1D×1
-  const totalGroupShares = useMemo(() => {
-    const otherTeams = (48 - 1) * BASELINE_SHARES_PER_TEAM;
-    const thisTeam = groupWins * 3 + groupDraws * 1;
-    return otherTeams + thisTeam;
-  }, [groupWins, groupDraws]);
-
   const calc = useMemo(
-    () => teamTotalPayout(pot, placement, groupWins, groupDraws, totalGroupShares),
-    [pot, placement, groupWins, groupDraws, totalGroupShares]
+    () => teamTotalPayout(pot, placement),
+    [pot, placement]
   );
 
   const userPayout = (calc.total * (ownership / 100));
 
-  // Reference table: use baseline total shares for all tiers
-  const baselineTotalShares = 48 * BASELINE_SHARES_PER_TEAM;
   const refRows = TIERS.map((t) => {
-    const p = teamTotalPayout(pot, t.placement, t.defaultWins, t.defaultDraws, baselineTotalShares);
+    const p = teamTotalPayout(pot, t.placement);
     return { ...t, ...p };
   });
 
   function applyPreset(preset) {
     setPlacement(preset.placement);
-    setGroupWins(preset.groupWins);
-    setGroupDraws(preset.groupDraws);
     setOwnership(preset.ownership);
   }
 
@@ -154,7 +126,7 @@ export default function SimulatorPage() {
       <div className="card" style={{ marginBottom: 20 }}>
         <h2 style={{ fontSize: 15, marginBottom: 4 }}>Payout by finishing position</h2>
         <p className="muted" style={{ fontSize: 12, marginBottom: 14 }}>
-          Assumes a typical group stage record for each tier. Group stage win pool estimated using tournament-wide averages.
+          Rewards start at the round of 32. Each team's total is its placement payout plus a bonus for every knockout round it wins.
         </p>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
@@ -162,8 +134,7 @@ export default function SimulatorPage() {
               <tr style={{ borderBottom: '2px solid var(--border)' }}>
                 <th style={{ textAlign: 'left', padding: '6px 8px 6px 0', fontWeight: 600 }}>Finishing position</th>
                 <th style={{ textAlign: 'right', padding: '6px 4px', color: 'var(--text-muted)', fontWeight: 400 }}>Placement</th>
-                <th style={{ textAlign: 'right', padding: '6px 4px', color: 'var(--text-muted)', fontWeight: 400 }}>Wins</th>
-                <th style={{ textAlign: 'right', padding: '6px 4px', color: 'var(--text-muted)', fontWeight: 400 }}>Group W</th>
+                <th style={{ textAlign: 'right', padding: '6px 4px', color: 'var(--text-muted)', fontWeight: 400 }}>Knockout wins</th>
                 <th style={{ textAlign: 'right', padding: '6px 0', fontWeight: 600 }}>Total / team</th>
               </tr>
             </thead>
@@ -176,7 +147,6 @@ export default function SimulatorPage() {
                   </td>
                   <td style={{ textAlign: 'right', padding: '7px 4px', color: 'var(--text-muted)' }}>{fmt(row.placementDollars)}</td>
                   <td style={{ textAlign: 'right', padding: '7px 4px', color: 'var(--text-muted)' }}>{fmt(row.knockoutDollars)}</td>
-                  <td style={{ textAlign: 'right', padding: '7px 4px', color: 'var(--text-muted)' }}>{fmt(row.groupDollars)}</td>
                   <td style={{ textAlign: 'right', padding: '7px 0', fontWeight: 700 }}>{fmt(row.total)}</td>
                 </tr>
               ))}
@@ -184,7 +154,7 @@ export default function SimulatorPage() {
           </table>
         </div>
         <p className="muted" style={{ fontSize: 11, marginTop: 10 }}>
-          * Group W column assumes {BASELINE_SHARES_PER_TEAM} shares/team average across all 48 teams. Actual amounts vary based on real group results.
+          Teams eliminated in the group stage earn no payout. The full pot is distributed across the 32 teams that reach the round of 32.
         </p>
       </div>
 
@@ -223,28 +193,6 @@ export default function SimulatorPage() {
           </div>
 
           <div>
-            <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>GROUP STAGE WINS</label>
-            <select
-              value={groupWins}
-              onChange={(e) => setGroupWins(parseInt(e.target.value))}
-              style={{ width: '100%', padding: '6px 8px' }}
-            >
-              {[0,1,2,3].map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>GROUP STAGE DRAWS</label>
-            <select
-              value={groupDraws}
-              onChange={(e) => setGroupDraws(parseInt(e.target.value))}
-              style={{ width: '100%', padding: '6px 8px' }}
-            >
-              {[0,1,2,3].map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </div>
-
-          <div>
             <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>YOUR OWNERSHIP %</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <input
@@ -267,7 +215,6 @@ export default function SimulatorPage() {
           {[
             ['Placement payout', calc.placementDollars, `${pct(placementPct(placement))} of pot`],
             ['Knockout wins', calc.knockoutDollars, `${knockoutWinsForPlacement(placement).join(' + ') || 'none'}`],
-            ['Group stage wins', calc.groupDollars, `${groupWins}W ${groupDraws}D → ${groupWins*3+groupDraws} shares of pool`],
           ].map(([label, value, note]) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
               <span style={{ fontSize: 13 }}>
@@ -291,8 +238,7 @@ export default function SimulatorPage() {
         </div>
 
         <p className="muted" style={{ fontSize: 11, marginTop: 10 }}>
-          Group stage win amounts are estimated assuming all other teams average {BASELINE_SHARES_PER_TEAM} shares (1W-1D-1L).
-          Real amounts depend on actual group stage results across all 48 teams.
+          Only knockout performance (round of 32 onward) is rewarded — teams knocked out in the group stage pay out nothing.
         </p>
       </div>
 

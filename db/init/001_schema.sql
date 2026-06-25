@@ -5,7 +5,7 @@ CREATE TABLE auction_config (
   id           INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
   start_time   TIMESTAMPTZ,
   end_time     TIMESTAMPTZ NOT NULL DEFAULT NOW() + INTERVAL '14 days',
-  starting_cap NUMERIC(10,2) NOT NULL DEFAULT 50.00,
+  starting_cap NUMERIC(10,2) NOT NULL DEFAULT 5.00,
   is_started   BOOLEAN NOT NULL DEFAULT FALSE,
   is_closed    BOOLEAN NOT NULL DEFAULT FALSE,
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()

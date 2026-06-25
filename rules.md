@@ -48,7 +48,7 @@ ownership % = weighted_caps / total_weighted_caps_for_team
 
 ## 3. Payment Rules
 
-- Users may **only bid up to $50** worth of caps until they submit payment via Venmo.  
+- Users may **only bid up to $5** worth of caps until they submit payment via Venmo.  
 - Admin must **mark you as paid** to unlock additional bidding.  
 - Bids **exceeding your current allowed limit are blocked**.  
 - **Unpaid bids will be voided**, and payouts withheld until payment is received.
@@ -61,4 +61,4 @@ ownership % = weighted_caps / total_weighted_caps_for_team
 
 - **Start:** End of May  
 - **End:** Early June (~2 weeks total)  
-- **Team Timers:** Each team has its own countdown timer.  
+- **Team Timers:** Each team has its own countdown timer. When a team's timer runs out, that team locks and no more bids are accepted — bidding ends at the deadline (no last-minute extensions).  

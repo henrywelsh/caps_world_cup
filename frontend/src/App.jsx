@@ -9,6 +9,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProfilePage from './pages/ProfilePage';
 import StatsPage from './pages/StatsPage';
 import SimulatorPage from './pages/SimulatorPage';
+import RulesPage from './pages/RulesPage';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="/profile"  element={<ProfilePage />} />
             <Route path="/stats"     element={<StatsPage />} />
             <Route path="/simulate" element={<SimulatorPage />} />
+            <Route path="/rules"    element={<RulesPage />} />
           </Routes>
         </WebSocketProvider>
       </UserIdentityProvider>

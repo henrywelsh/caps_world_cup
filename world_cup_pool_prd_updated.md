@@ -47,7 +47,7 @@ ownership % = user_weighted_caps / total_weighted_caps_per_team
 - No complex authentication required
 
 ### 3.2 Payment Gating (Critical)
-- Users may only bid up to $50 (or equivalent caps) initially
+- Users may only bid up to $5 (or equivalent caps) initially
 - To unlock additional bidding:
   - User must submit payment (e.g., Venmo)
   - Admin manually marks user as “paid”
@@ -77,11 +77,10 @@ Users can see:
 - Auction duration: ~2 weeks
 - Starts end of May, ends early June
 
-### 4.2 Anti-Sniping
-- Each team has its own timer
-- If a bid is placed within final 10 minutes:
-  - That team’s timer extends by 10 minutes
-- No limit to extensions
+### 4.2 Team Timers
+- Each team has its own timer, seeded from the global auction end time
+- Bidding ends at the deadline — there are no anti-snipe extensions
+- Admins can override the global end time (resets all team timers) or an individual team's deadline
 
 ### 4.3 Locking
 - Once a team’s timer expires:
@@ -115,7 +114,7 @@ Users can see:
 - Residual amounts assigned via consistent rule
 
 ### 5.6 Payment Limit Enforcement
-- System must block bids exceeding unpaid cap ($50)
+- System must block bids exceeding unpaid cap ($5)
 - Edge case:
   - Multiple rapid bids exceeding limit → reject excess
 
@@ -129,9 +128,8 @@ Users can see:
 - No strict prevention required (manual oversight)
 
 ### 5.9 Timer Edge Cases
-- Bid exactly at deadline:
-  - If within extension window → extend
-  - Otherwise reject
+- Bid at or after a team's deadline:
+  - Reject (team is locked)
 
 ### 5.10 Data Integrity
 - Bids must be immutable
@@ -224,5 +222,5 @@ Columns:
 - Ownership is based on time-weighted caps
 - Early bids have higher value
 - Ownership can be diluted at any time
-- Users are limited to $50 in bids until payment is received
+- Users are limited to $5 in bids until payment is received
 - 100% of the pot is paid out

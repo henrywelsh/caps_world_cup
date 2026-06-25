@@ -38,6 +38,26 @@ router.put('/auction', async (req, res) => {
   `, [end_time ?? null, starting_cap ?? null]);
 
   broadcast('auction:state_changed', rows[0]);
+
+  // Changing the global end time resets every team's countdown to match it.
+  // Overwrites anti-snipe extensions and per-team overrides, and reopens
+  // locked teams, so the new deadline applies uniformly.
+  if (end_time) {
+    const { rows: teams } = await pool.query(`
+      UPDATE teams
+         SET extended_end_time = $1::timestamptz, is_locked = FALSE
+       WHERE extended_end_time IS NOT NULL
+       RETURNING id, name, extended_end_time
+    `, [end_time]);
+    for (const t of teams) {
+      broadcast('team:timer_extended', {
+        team_id: t.id,
+        team_name: t.name,
+        new_extended_end_time: t.extended_end_time,
+      });
+    }
+  }
+
   res.json(rows[0]);
 });
 

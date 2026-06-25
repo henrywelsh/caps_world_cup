@@ -30,6 +30,7 @@ export default function AuctionStatusBar({ config, potTotal }) {
         <span><span className="muted">Auction ends:</span> <CountdownTimer endTime={config.end_time} isLocked={false} /></span>
       )}
       <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'center' }}>
+        <a href="/rules">Rules</a>
         <a href="/stats">Stats</a>
         <a href="/simulate">Simulator</a>
         {user ? (

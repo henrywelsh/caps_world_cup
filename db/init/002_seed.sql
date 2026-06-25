@@ -1,5 +1,5 @@
 -- Seed auction config singleton — auction starts immediately on a fresh DB.
--- Keeps default end_time (NOW() + 14 days) and starting_cap (50.00).
+-- Keeps default end_time (NOW() + 14 days) and starting_cap (5.00).
 INSERT INTO auction_config (id, is_started, start_time) VALUES (1, TRUE, NOW());
 
 -- World Cup 2026 teams — official final draw (Washington, D.C., 5 Dec 2025).

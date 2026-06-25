@@ -68,7 +68,7 @@ export default function UserApp() {
       return {
         ...d,
         teams: d.teams.map((t) =>
-          t.id !== ev.team_id ? t : { ...t, extended_end_time: ev.new_extended_end_time }
+          t.id !== ev.team_id ? t : { ...t, extended_end_time: ev.new_extended_end_time, is_locked: false }
         ),
       };
     });

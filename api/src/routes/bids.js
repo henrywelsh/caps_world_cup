@@ -78,21 +78,6 @@ router.post('/', userAuth, async (req, res) => {
       `, [userId, team_id, amount, multiplier, weightedAmount, placedAt]);
       const bid = bidInsert[0];
 
-      // Anti-snipe: extend timer if bid is within 10 minutes of team's deadline
-      let newEndTime = null;
-      if (team.extended_end_time) {
-        const { rows: updatedTeam } = await client.query(`
-          UPDATE teams
-             SET extended_end_time = GREATEST(extended_end_time, NOW() + INTERVAL '10 minutes')
-           WHERE id = $1
-             AND extended_end_time - NOW() < INTERVAL '10 minutes'
-           RETURNING extended_end_time
-        `, [team_id]);
-        if (updatedTeam.length) {
-          newEndTime = updatedTeam[0].extended_end_time;
-        }
-      }
-
       // Get updated team aggregate for broadcast
       const { rows: agg } = await client.query(`
         SELECT COALESCE(SUM(weighted_amount), 0) AS tw,
@@ -106,12 +91,10 @@ router.post('/', userAuth, async (req, res) => {
 
       return {
         bid,
-        new_extended_end_time: newEndTime,
         remaining_cap: Math.max(0, available - amount),
         _broadcast: {
           bid,
           team,
-          newEndTime,
           team_total_weighted_caps: parseFloat(agg[0].tw),
           pot_total: parseFloat(potAgg[0].pot),
         },
@@ -134,15 +117,6 @@ router.post('/', userAuth, async (req, res) => {
       pot_total: b.pot_total,
     });
 
-    if (b.newEndTime) {
-      broadcast('team:timer_extended', {
-        team_id: b.team.id,
-        team_name: b.team.name,
-        new_extended_end_time: b.newEndTime,
-        triggered_by_bid_id: b.bid.id,
-      });
-    }
-
     res.status(201).json({
       id: result.bid.id,
       team_id: result.bid.team_id,
@@ -150,7 +124,6 @@ router.post('/', userAuth, async (req, res) => {
       multiplier: parseFloat(result.bid.multiplier),
       weighted_amount: parseFloat(result.bid.weighted_amount),
       placed_at: result.bid.placed_at,
-      new_extended_end_time: result.new_extended_end_time,
       remaining_cap: result.remaining_cap,
     });
   } catch (err) {

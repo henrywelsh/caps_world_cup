@@ -54,11 +54,11 @@ ownership_pct = user_weighted_caps_for_team / total_weighted_caps_for_team
 - 100% of pot is distributed based on final tournament placement
 - Per-user payout = (team payout) × (user ownership % on that team)
 
-### Anti-Sniping
-Each team has its own independent countdown timer. A bid placed within the final 10 minutes extends that team's timer by 10 minutes (no limit to extensions).
+### Team Timers
+Each team has its own independent countdown timer. When a team's timer expires it locks and no further bids are accepted — there are no anti-snipe extensions; bidding ends at the deadline. All team timers are seeded from the global `end_time` and admins can override the global end time (which resets every team's deadline) or an individual team's deadline.
 
 ### Payment Gating
-- **Starting cap is configurable** (default ~$50); users are hard-capped at this amount until they pay
+- **Starting cap is configurable** (default ~$5); users are hard-capped at this amount until they pay
 - When a user submits payment, admin records the payment amount; the user's bid limit increases by the amount they paid (e.g., starting cap + payment amount)
 - Bids exceeding the user's current cap must be rejected (including rapid simultaneous bids)
 
@@ -97,7 +97,7 @@ Admins need the ability to:
 - **Deployment**: Docker Compose — three services: `db`, `api`, `frontend` (nginx)
 
 ### Critical files
-- `api/src/routes/bids.js` — most complex file; uses `pg_advisory_xact_lock` to serialize concurrent bids per user, anti-snipe extension, and multiplier calculation inside one transaction
+- `api/src/routes/bids.js` — most complex file; uses `pg_advisory_xact_lock` to serialize concurrent bids per user, and multiplier calculation inside one transaction
 - `api/src/services/timerService.js` — `setInterval` loop (5s) that locks expired teams and broadcasts `team:locked`
 - `api/src/services/multiplier.js` — linear decay formula; always uses **global** `end_time`, never `extended_end_time`
 - `api/src/services/payouts.js` — idempotent payout calculation; deletes and rewrites the `payouts` table on each call
@@ -105,7 +105,7 @@ Admins need the ability to:
 - `frontend/src/providers/UserIdentityProvider.jsx` — user UUID token stored in `localStorage`; admin token in `sessionStorage`
 
 ### Data flow
-1. User places bid → `POST /api/v1/bids` → transaction acquires advisory lock → validates cap → inserts bid → anti-snipe update → commits → broadcasts `bid:placed` and optionally `team:timer_extended` via WebSocket
+1. User places bid → `POST /api/v1/bids` → transaction acquires advisory lock → validates cap → inserts bid → commits → broadcasts `bid:placed` via WebSocket
 2. `timerService` loop → detects `extended_end_time < NOW()` → sets `is_locked = TRUE` → broadcasts `team:locked`
 3. Frontend `UserApp` fetches full state on mount, then patches in-memory state from WS events (no full refetch per event)
 4. Admin enters results → `POST /api/v1/admin/results` → saves placements → `computeAndSavePayouts()` → broadcasts `results:published`
